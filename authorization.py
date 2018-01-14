@@ -1,27 +1,41 @@
 import time
 import hashlib
 
+
 class Authorization:
-    def __init__(self, inputs, outputs, duration=10):
-        self.inputs = inputs
-        self.outputs = outputs
-        self.duration = duration
-        self.timestamp = time.time()
+    def __init__(self, inputs, outputs, duration=None):
+        self._inputs = inputs
+        self._outputs = outputs
+        self._duration = duration
+        self._timestamp = time.time()
 
     def addInput(self, input):
-        self.inputs.append(input)
+        self._inputs.append(input)
 
     def removeInput(self, input):
-        self.inputs.remove(input)
+        self._inputs.remove(input)
 
     def addOutput(self, output):
-        self.outputs.append(output)
+        self._outputs.append(output)
 
     def removeOutput(self, output):
-        self.outputs.remove(output)
+        self._outputs.remove(output)
 
-    def setDuration(self, duration):
-        self.duration = duration
+    def getOutput(self, index):
+        return self._outputs[index]
+
+    def setDuration(self, start, end):
+        self._duration.set(start, end)
+
+    def calcHash(self):
+        return hashlib.sha256(str(self).encode('utf-8')).hexdigest()
+
+    def valid(self):
+        hash = self.calcHash()
+        for input in self._inputs:
+            if not input.valid(hash):
+                return False
+        return True
 
     def __str__(self):
         m = ""
@@ -36,5 +50,6 @@ class Authorization:
 
         return m
 
-    def calcHash(self):
-        return hashlib.sha256(str(self).encode('utf-8')).hexdigest()
+
+if __name__ == '__main__':
+    print(time.time())
