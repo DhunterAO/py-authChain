@@ -1,11 +1,9 @@
 from ecdsa import SigningKey, VerifyingKey
 
 
-
 class Account:
-
-    def __init__(self, private_key=None, public_key=None):
-        if private_key == None:
+    def __init__(self, private_key=None):
+        if private_key is None:
             self._private_key = SigningKey.generate()
             self._public_key = self._private_key.get_verifying_key()
             self.address = self._public_key.to_string()
@@ -20,7 +18,6 @@ class Account:
         m = auth.calchash()
         sig = self.signMessage(m)
         auth.a
-
 
     def getPubkey(self):
         return self._public_key.to_string()

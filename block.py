@@ -1,11 +1,15 @@
 import hashlib
 import time
 
+
 class Block:
-    def __init__(self, prev_hash=0, authorizations=[], hash_root=None, now_hash=0, nonce=0):
+    def __init__(self, prev_hash=0, authorizations=[], hash_root=None, timestamp=0, now_hash=0, nonce=0):
         self._authorizations = authorizations
         self._hashRoot = hash_root
-        self._timestamp = time.time()
+        if timestamp == 0:
+            self._timestamp = time.time()
+        else:
+            self._timestamp = timestamp
         self._prevHash = prev_hash
         self._nowHash = now_hash
         self._nonce = nonce
@@ -14,7 +18,14 @@ class Block:
         for authorization in self._authorizations:
             if not authorization.valid():
                 return False
-
+        if self.calcHashRoot() != self._hashRoot:
+            return False
+        if self.calcHash() != self._nowHash:
+            return False
+        now = time.time()
+        if self._timestamp > now+600:
+            return False
+        return True
 
     def getHash(self):
         return self._hash
@@ -35,7 +46,11 @@ class Block:
         m = ""
         for authorization in self._authorizations:
             m += str(authorization)
-        self._hashRoot = hashlib.sha256(str())
+            m = hashlib.sha256(m.encode("utf-8")).hexdigest()
+        return m
+
+    def setHashRoot(self):
+        self._hashRoot = self.calcHashRoot()
 
     def calcHash(self):
         self._nowHash = hashlib.sha256(str(self).encode("utf-8")).hexdigest()
@@ -45,6 +60,7 @@ class Block:
 
     def __str__(self):
         return str(self._prevHash, self._nowHash, self._hashRoot, self._nonce)
+
 
 if __name__ == '__main__':
     block = Block()
