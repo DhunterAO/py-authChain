@@ -40,11 +40,16 @@ class Authorization:
     def calc_hash(self):
         return hashlib.sha256(str(self).encode('utf-8')).hexdigest()
 
-    def valid(self):
-        hash = self.calcHash()
+    def valid(self, blockchain):
+        hash = self.calc_hash()
         for input in self._inputs:
-            if not input.valid(hash):
+            if not input.valid(blockchain, hash):
                 return False
+        for output in self._outputs:
+            if not output.valid():
+                return False
+        if not self._duration.valid(len(blockchain)):
+            return False
         return True
 
     def __str__(self):

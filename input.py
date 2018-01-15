@@ -31,7 +31,7 @@ class Input:
         self._signature = signature
 
     def valid(self, blockchain, message):
-        source_out = blockchain.findOut(self._blockNumber, self._authNumber, self._outputNumber)
+        source_out = blockchain.get_output(self._blockNumber, self._authNumber, self._outputNumber)
         source_pubkey = source_out.getAddress()
         source_pubkey = VerifyingKey.from_string(source_pubkey)
         return source_pubkey.verify(self._signature, message.encode("utf-8"))

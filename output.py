@@ -25,6 +25,15 @@ class Output:
     def get_limit(self):
         return self._limit
 
+    def valid(self, givens):
+        for given in givens:
+            if 
+        if not self._limit.valid(data_given, option_given):
+            return False
+        if not self._dataURL.valid(data_given):
+            return False
+        return True
+
     def __str__(self):
         return str(self._recipient) + str(self._dataURL) + str(self._limit)
 
@@ -32,7 +41,7 @@ class Output:
 if __name__ == '__main__':
     output = Output()
     output.set_recipient("aaxxbb")
-    output.set_data_url(DataURL(10,3))
+    output.set_data_url(DataURL(10, 3))
     print(str(output))
     output.set_limit(2)
     print(str(output))

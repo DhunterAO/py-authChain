@@ -13,14 +13,15 @@ class Block:
         self._prevHash = prev_hash
         self._nowHash = now_hash
         self._nonce = nonce
+        return
 
-    def valid(self):
+    def valid(self, blockchain):
         for authorization in self._authorizations:
-            if not authorization.valid():
+            if not authorization.valid(blockchain):
                 return False
-        if self.calcHashRoot() != self._hashRoot:
+        if self.calc_hash_root() != self._hashRoot:
             return False
-        if self.calcHash() != self._nowHash:
+        if self.calc_hash() != self._nowHash:
             return False
         now = time.time()
         if self._timestamp > now+600:
@@ -36,11 +37,12 @@ class Block:
     def get_authorizations(self):
         return self._authorizations
 
-    def get_autherization(self, index):
+    def get_authorization(self, index):
         return self._authorizations[index]
 
-    def add_autherization(self, authorization):
+    def add_authorization(self, authorization):
         self._authorizations.append(authorization)
+        return
 
     def calc_hash_root(self):
         m = ""
@@ -50,13 +52,16 @@ class Block:
         return m
 
     def set_hash_root(self):
-        self._hashRoot = self.calcHashRoot()
+        self._hashRoot = self.calc_hash_root()
 
     def get_timestamp(self):
         return self._timestamp
 
     def calc_hash(self):
-        self._nowHash = hashlib.sha256(str(self).encode("utf-8")).hexdigest()
+        return hashlib.sha256(str(self).encode("utf-8")).hexdigest()
+
+    def set_now_hash(self):
+        self._nowHash = self.calc_hash()
         return
 
     def update_time(self):

@@ -1,37 +1,65 @@
+import logging
+
 
 class DataURL:
+    def __init__(self, start=0, end=0):
+        if start <= end:
+            self._start = start
+            self._end = end
+        else:
+            logging.error("start should smaller or equal than end")
+        return
 
-    def __init__(self, location=0, length=0):
-        self._location = location
-        self._length = length
+    def set(self, start, end):
+        if start <= end:
+            self._start = start
+            self._end = end
+        else:
+            logging.error("start should smaller or equal than end")
+        return
 
-    def set(self, location, length):
-        self._location = location
-        self._length = length
+    def set_start(self, start):
+        if start <= self._end:
+            self._start = start
+        else:
+            logging.error("start should smaller or equal than end")
+        return
 
-    def set_location(self, location):
-        self._location = location
+    def get_start(self):
+        return self._start
 
-    def get_location(self):
-        return self._location
+    def set_end(self, end):
+        if end >= self._start:
+            self._end = end
+        else:
+            logging.error("start should smaller or equal than end")
+        return
 
-    def set_length(self, length):
-        self._length = length
+    def get_end(self):
+        return self._end
 
-    def get_length(self):
-        return self._length
+    def valid(self, given):
+        for i in range(self._start, self._end):
+            flag = 0
+            for j in given:
+                if j.start <= i <= j.end:
+                    flag = 1
+                    break
+            if flag == 0:
+                return False
+        return True
 
     def __str__(self):
-        return str(self._location) + str(self._length)
+        return str(self._start) + str(self._end)
 
 
 if __name__ == '__main__':
-    d = DataURL(10, 2)
+    d = DataURL(10, 12)
     print(str(d))
     d.set(11, 3)
     print(str(d))
-    d.set_location(2)
+    d.set_start(2)
     print(str(d))
-    d.set_length(10)
+    d.set_end(10)
     print(str(d))
 
