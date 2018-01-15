@@ -27,39 +27,51 @@ class Block:
             return False
         return True
 
-    def getHash(self):
-        return self._hash
+    def get_now_hash(self):
+        return self._nowHash
 
-    def getPrevHash(self):
+    def get_prev_hash(self):
         return self._prevHash
 
-    def getAuthorizations(self):
+    def get_authorizations(self):
         return self._authorizations
 
-    def getAutherization(self, index):
+    def get_autherization(self, index):
         return self._authorizations[index]
 
-    def addAutherization(self, authorization):
+    def add_autherization(self, authorization):
         self._authorizations.append(authorization)
 
-    def calcHashRoot(self):
+    def calc_hash_root(self):
         m = ""
         for authorization in self._authorizations:
             m += str(authorization)
             m = hashlib.sha256(m.encode("utf-8")).hexdigest()
         return m
 
-    def setHashRoot(self):
+    def set_hash_root(self):
         self._hashRoot = self.calcHashRoot()
 
-    def calcHash(self):
-        self._nowHash = hashlib.sha256(str(self).encode("utf-8")).hexdigest()
+    def get_timestamp(self):
+        return self._timestamp
 
-    def updateTime(self):
+    def calc_hash(self):
+        self._nowHash = hashlib.sha256(str(self).encode("utf-8")).hexdigest()
+        return
+
+    def update_time(self):
         self._timestamp = time.time()
+        return
+
+    def update(self):
+        self._nonce += 1
+        self._nonce %= 4294967296
+        if self._nonce == 0:
+            self.update_time()
+        return
 
     def __str__(self):
-        return str(self._prevHash, self._nowHash, self._hashRoot, self._nonce)
+        return str(self._prevHash) + str(self._nowHash) + str(self._hashRoot) + str(self._nonce)
 
 
 if __name__ == '__main__':

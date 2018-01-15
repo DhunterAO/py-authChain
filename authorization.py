@@ -1,33 +1,43 @@
 import time
 import hashlib
+from duration import Duration
+from input import Input
+from output import Output
 
 
 class Authorization:
-    def __init__(self, inputs, outputs, duration=None):
+    def __init__(self, inputs=[], outputs=[], duration=None, timestamp=None):
         self._inputs = inputs
         self._outputs = outputs
-        self._duration = duration
-        self._timestamp = time.time()
+        if duration is None:
+            self._duration = Duration()
+        else:
+            self._duration = duration
 
-    def addInput(self, input):
+        if timestamp is None:
+            self._timestamp = time.time()
+        else:
+            self._timestamp = timestamp
+
+    def add_input(self, input):
         self._inputs.append(input)
 
-    def removeInput(self, input):
+    def remove_input(self, input):
         self._inputs.remove(input)
 
-    def addOutput(self, output):
+    def add_output(self, output):
         self._outputs.append(output)
 
-    def removeOutput(self, output):
+    def remove_output(self, output):
         self._outputs.remove(output)
 
-    def getOutput(self, index):
+    def get_output(self, index):
         return self._outputs[index]
 
-    def setDuration(self, start, end):
-        self._duration.set(start, end)
+    def set_duration(self, end, start):
+        self._duration.set(end, start)
 
-    def calcHash(self):
+    def calc_hash(self):
         return hashlib.sha256(str(self).encode('utf-8')).hexdigest()
 
     def valid(self):
@@ -39,17 +49,31 @@ class Authorization:
 
     def __str__(self):
         m = ""
-        for i in self.inputs:
+        for i in self._inputs:
             m += str(i)
 
-        for i in self.outputs:
+        for i in self._outputs:
             m += str(i)
 
-        m += str(self.timestamp)
-        m += str(self.duration)
+        m += str(self._timestamp)
+        m += str(self._duration)
 
         return m
 
 
 if __name__ == '__main__':
+    auth = Authorization()
     print(time.time())
+    print(auth.calc_hash())
+    a = auth.calc_hash()
+    auth.set_duration(100, 20)
+    print(str(auth))
+    b = auth.calc_hash()
+    print(auth.calc_hash())
+    print(type(a))
+    print(int(a,16))
+    print(int("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",16))
+    print(a<"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+    auth.add_input(Input())
+    auth.add_output(Output())
+

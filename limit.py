@@ -1,17 +1,38 @@
-
 class Limit:
 
     def __init__(self, limit=0):
-        self.limit = limit
+        self._limit = limit
 
-    def addRead(self):
-        self.limit &= 1
+    def add_read(self):
+        self._limit |= 1
 
-    def addAppend(self):
-        self.limit &= 2
+    def remove_read(self):
+        self._limit &= ~1
 
-    def addDelete(self):
-        self.limit &= 4
+    def add_append(self):
+        self._limit |= 2
+
+    def remove_append(self):
+        self._limit &= ~2
+
+    def add_delete(self):
+        self._limit |= 4
+
+    def valid(self, require):
+        return (self._limit | require) == self._limit
 
     def __str__(self):
-        return str(self.limit)
+        return str(self._limit)
+
+
+if __name__ == '__main__':
+    l = Limit()
+    print(str(l))
+    l.add_append()
+    print(str(l))
+    l.add_read()
+
+    print(str(l))
+    print(l.valid(3))
+    print(l.valid(4))
+
