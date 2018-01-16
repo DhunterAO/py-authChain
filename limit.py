@@ -18,8 +18,8 @@ class Limit:
     def add_delete(self):
         self._limit |= 4
 
-    def valid(self, require):
-        return (self._limit | require) == self._limit
+    def valid(self, given_limit):
+        return (self._limit & given_limit) == self._limit
 
     def __str__(self):
         return str(self._limit)

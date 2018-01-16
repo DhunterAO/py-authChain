@@ -75,6 +75,19 @@ class Block:
             self.update_time()
         return
 
+    def to_json(self):
+        block_json = {
+            'prev_hash': self._prevHash,
+            'now_hash': self._nowHash,
+            'timestamp': self._timestamp,
+            'hash_root': self._hashRoot,
+            'nonce': self._nonce,
+            'authorizations': {}
+        }
+        for authorization in self._authorizations:
+            block_json[authorization].add(authorization.to_json)
+        return block_json
+
     def __str__(self):
         return str(self._prevHash) + str(self._nowHash) + str(self._hashRoot) + str(self._nonce)
 

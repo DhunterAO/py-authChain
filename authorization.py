@@ -40,13 +40,19 @@ class Authorization:
     def calc_hash(self):
         return hashlib.sha256(str(self).encode('utf-8')).hexdigest()
 
+    def to_json(self):
+        
+
     def valid(self, blockchain):
         hash = self.calc_hash()
+        givens = []
         for input in self._inputs:
             if not input.valid(blockchain, hash):
                 return False
+            out = blockchain.get_output(input.get_block_number(), input.get_auth_number(), input.get_output_number())
+            givens.append((out.get_dataURL().get_start(), out.get_dataURL().get_end(), out.get_limit()))
         for output in self._outputs:
-            if not output.valid():
+            if not output.valid(givens):
                 return False
         if not self._duration.valid(len(blockchain)):
             return False
@@ -56,13 +62,10 @@ class Authorization:
         m = ""
         for i in self._inputs:
             m += str(i)
-
         for i in self._outputs:
             m += str(i)
-
         m += str(self._timestamp)
         m += str(self._duration)
-
         return m
 
 

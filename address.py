@@ -19,7 +19,7 @@ class Address:
         return self.sign_message(m)
 
     def get_pubkey(self):
-        return self._public_key.to_string()
+        return self._public_key.to_string().hex()
 
 
 def verify_signature(pubkey, message, signature):

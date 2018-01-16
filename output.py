@@ -6,9 +6,11 @@ class Output:
         self._recipient = recipient
         self._dataURL = data_url
         self._limit = limit
+        return
 
     def set_recipient(self, recipient):
         self._recipient = recipient
+        return
 
     def get_recipient(self):
         return self._recipient
@@ -21,18 +23,16 @@ class Output:
 
     def set_limit(self, limit):
         self._limit = limit
+        return
 
     def get_limit(self):
         return self._limit
 
     def valid(self, givens):
         for given in givens:
-            if 
-        if not self._limit.valid(data_given, option_given):
-            return False
-        if not self._dataURL.valid(data_given):
-            return False
-        return True
+            if self._dataURL.valid(given[0],given[1]) and self._limit.valid(given[2]):
+                return True
+        return False
 
     def __str__(self):
         return str(self._recipient) + str(self._dataURL) + str(self._limit)

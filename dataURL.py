@@ -7,6 +7,8 @@ class DataURL:
             self._start = start
             self._end = end
         else:
+            self._start = 0
+            self._end = 0
             logging.error("start should smaller or equal than end")
         return
 
@@ -38,16 +40,8 @@ class DataURL:
     def get_end(self):
         return self._end
 
-    def valid(self, given):
-        for i in range(self._start, self._end):
-            flag = 0
-            for j in given:
-                if j.start <= i <= j.end:
-                    flag = 1
-                    break
-            if flag == 0:
-                return False
-        return True
+    def valid(self, given_start, given_end):
+        return given_start <= self._start and given_end >= self._end
 
     def __str__(self):
         return str(self._start) + str(self._end)

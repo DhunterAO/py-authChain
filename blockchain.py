@@ -52,6 +52,12 @@ class Blockchain:
                 return False
         return True
 
+    def contain(self, hash):
+        for block in self._blockchain:
+            if block.get_now_hash() == hash:
+                return True
+        return False
+
 
 if __name__ == '__main__':
     blockchain = Blockchain()
