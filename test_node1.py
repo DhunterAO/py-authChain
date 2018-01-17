@@ -1,6 +1,5 @@
-from flask import Flask, jsonify
-from blockchain import Blockchain
+from node import start, add_neighbor
 
-a = 1
-a = 2
-a = 3
+start(9000)
+add_neighbor("127.0.0.1:9002")
+print(1)

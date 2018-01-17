@@ -94,7 +94,7 @@ class Block:
         return json
 
     def __str__(self):
-        return str(self._prevHash) + str(self._hashRoot) +str(self._nonce)
+        return str(self._prevHash) + str(self._hashRoot) + str(self._nonce) + str(self._timestamp)
 
 
 if __name__ == '__main__':

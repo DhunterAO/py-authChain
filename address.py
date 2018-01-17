@@ -33,5 +33,5 @@ if __name__ == '__main__':
     print(u.signMessage("fa9988j"))
     s = u.signMessage("fa9988j")
     p = u.getPubkey()
-    print(verifySignature(p,"fa9988j",s))
+    print(u.verifySignature(p, "fa9988j", s))
 

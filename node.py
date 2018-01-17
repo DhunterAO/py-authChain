@@ -10,7 +10,7 @@ import flask
 
 
 class Node:
-    def __init__(self, ip="127.0.0.1", port=9000, neighbor_list={},
+    def __init__(self, ip="127.0.0.1", port=9000, neighbor_list=set(),
                  account=Account(), blockchain=Blockchain(), authorization_pool=set()):
         self._ip = ip
         self._port = port
@@ -173,21 +173,30 @@ def list_blockchain():
 
 
 @app.route('/neighbor/add', methods=['POST'])
-def register_nodes():
+def add_neighbor():
+    print('add neighbor')
     neighbors = request.get_json().get('neighbors')
     if neighbors is None:
         return "Error: Please supply a valid list of neighbors", 400
     for neighbor in neighbors:
+        print(neighbor)
         node.add_neighbor(neighbor)
     response = node.get_neighbors()
-    return jsonify(response), 201
+    return jsonify(list(response)), 201
 
 
-def main(port):
+@app.route('/neighbor/list', methods=['GET'])
+def list_neighbors():
+    neighbors = node.get_neighbors()
+    response = {
+        'neighbors': list(neighbors)
+    }
+    return jsonify(response), 200
+
+
+def start(port):
     app.run(host='127.0.0.1', port=port)
 
-
 if __name__ == '__main__':
-    main(5000)
-
+    start(5000)
 
