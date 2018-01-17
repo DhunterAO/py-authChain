@@ -6,14 +6,13 @@ from output import Output
 
 
 class Authorization:
-    def __init__(self, inputs=[], outputs=[], duration=None, timestamp=None):
+    def __init__(self, inputs=[], outputs=[], duration: Duration=None, timestamp=None):
         self._inputs = inputs
         self._outputs = outputs
         if duration is None:
             self._duration = Duration()
         else:
             self._duration = duration
-
         if timestamp is None:
             self._timestamp = time.time()
         else:
@@ -41,7 +40,19 @@ class Authorization:
         return hashlib.sha256(str(self).encode('utf-8')).hexdigest()
 
     def to_json(self):
-        
+        inputs_json = []
+        for input in self._inputs:
+            inputs_json.append(input.to_json())
+        outputs_json = []
+        for output in self._outputs:
+            outputs_json.append(output.to_json())
+        json = {
+            'inputs': inputs_json,
+            'outputs': outputs_json,
+            'duration': self._duration.to_json(),
+            'timestamp': self._timestamp
+        }
+        return json
 
     def valid(self, blockchain):
         hash = self.calc_hash()

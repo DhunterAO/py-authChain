@@ -43,6 +43,13 @@ class DataURL:
     def valid(self, given_start, given_end):
         return given_start <= self._start and given_end >= self._end
 
+    def to_json(self):
+        json = {
+            'start': self._start,
+            'end': self._end
+        }
+        return json
+
     def __str__(self):
         return str(self._start) + str(self._end)
 

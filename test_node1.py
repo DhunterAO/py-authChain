@@ -1,18 +1,6 @@
+from flask import Flask, jsonify
+from blockchain import Blockchain
 
-import flask
-
-
-test = flask.Flask(__name__)
-
-
-@test.route('/')
-def hello_world():
-    return 'Hello, I\'m node1!'
-
-
-@test.route('/node2')
-def get():
-    return
-
-
-test.run(host='127.0.0.1', port=9293)
+a = 1
+a = 2
+a = 3

@@ -1,19 +1,32 @@
 from block import Block
 import logging
+import constant
 
 
 class Blockchain:
-    def __init__(self, genesis_block, blockchain=None,
-                 difficulty=int("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",16)):
+    def __init__(self, genesis_block=None, blockchain=None,
+                 difficulty="0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"):
+        if genesis_block is None:
+            genesis_block = constant.genesis_block
         if blockchain is None:
             self._blockchain = []
-            self._blockchain[0] = genesis_block
+            self._blockchain.append(genesis_block)
         else:
             self._blockchain = blockchain
             if self._blockchain[0] is not genesis_block:
                 logging.error("genesis_block is not the head of the blockchain")
                 return
         self._difficulty = difficulty
+
+    def to_json(self):
+        json = {
+            'height': len(self._blockchain),
+            'difficulty': self._difficulty,
+            'blockchain': []
+        }
+        for block in self._blockchain:
+            json['blockchain'].append(block.to_json())
+        return json
 
     def get_block(self, block_number):
         return self._blockchain[block_number]
@@ -22,7 +35,13 @@ class Blockchain:
         return self.get_block(block_number).get_authorization(authorization_number)
 
     def get_output(self, block_number, authorization_number, output_number):
-        return self._blockchain[block_number].get_autherization(authorization_number).get_output(output_number)
+        try:
+            output = self._blockchain[block_number].get_autherization(authorization_number).get_output(output_number)
+        except IndexError:
+            logging.error("index out of range")
+            return None
+        else:
+            return output
 
     def add_new_block(self, block):
         if block.get_prev_hash() == self._blockchain[-1].get_now_hash():
@@ -33,22 +52,19 @@ class Blockchain:
 
     def generate_new_block(self, authorizations):
         new_block = Block(self._blockchain[-1].get_now_hash(), authorizations)
-        self._blockchain.append(new_block)
-        if len(self._blockchain) % 100 == 1:
-            self._difficulty *= 6000/(self._blockchain[-1].get_timestamp()-self._blockchain[-101].get_timestamp())
-
-        new_hash = new_block.calc_hash()
-        while int(new_hash, 16) > self._difficulty:
+        while new_block.calc_hash() > self._difficulty:
             new_block.update()
+        self._blockchain.append(new_block)
         return new_block
 
     def valid(self):
-        if not self._blockchain[0].valid(self):
+        if not self._blockchain[0].valid(self) or self._blockchain[0].get_now_hash > self._difficulty:
             return False
-        for i in range(1,len(self._blockchain)):
-            if self._blockchain[i].get_prev_hash != self._blockchain[i-1].get_now_hash:
+        for i in range(1, len(self._blockchain)):
+            if self._blockchain[i].get_prev_hash != self._blockchain[i-1].get_now_hash \
+                    or self._blockchain[-1].get_now_hash > self._difficulty:
                 return False
-            if not self._blockchain[1].valid(self):
+            if not self._blockchain[i].valid(self):
                 return False
         return True
 
@@ -60,4 +76,6 @@ class Blockchain:
 
 
 if __name__ == '__main__':
-    blockchain = Blockchain()
+    my_chain = Blockchain()
+    gen_block = my_chain.get_block(0)
+    print(gen_block.to_json())

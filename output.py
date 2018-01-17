@@ -34,6 +34,14 @@ class Output:
                 return True
         return False
 
+    def to_json(self):
+        json = {
+            'recipient': self._recipient,
+            'dataURL': self._dataURL.to_json(),
+            'limit': self._limit
+        }
+        return json
+
     def __str__(self):
         return str(self._recipient) + str(self._dataURL) + str(self._limit)
 
