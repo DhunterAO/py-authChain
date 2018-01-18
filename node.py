@@ -21,7 +21,7 @@ class Node:
 
         @self.app.route('/')
         def hello_world():
-            return render_template('form.html')
+            return render_template('entry.html')
 
         @self.app.route('/', methods=['POST'])
         def my_form_post():
@@ -41,9 +41,13 @@ class Node:
             response = node.get_authorization_pool()
             return jsonify(response), 200
 
+        @self.app.route('/authorization/new')
+        def submit_authorization():
+            return render_template('new_transaction.html')
+
         @self.app.route('/authorization/new', methods=['POST'])
         def new_authorization():
-            get_json = request.get_json()
+            get_json = request.form['text']
             required = ['inputs', 'outputs', 'duration', 'timestamp']
             if not all(k in get_json for k in required):
                 return 'Missing values', 400
@@ -62,8 +66,8 @@ class Node:
             return jsonify(response), 200
 
         @self.app.route('/neighbor/add')
-        def add_page():
-            return render_template('form.html')
+        def submit_neighbor():
+            return render_template('new_neighbor.html')
 
         @self.app.route('/neighbor/add', methods=['POST'])
         def add_neighbor():
