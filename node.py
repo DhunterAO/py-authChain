@@ -1,12 +1,11 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
+from util import is_valid_ip
 from account import Account
 from blockchain import Blockchain
-from urllib.parse import urlparse
-from argparse import ArgumentParser
 from authorization import Authorization
 import requests
 import json
-import flask
+import socket
 
 
 class Node:
@@ -18,6 +17,80 @@ class Node:
         self._account = account
         self._blockchain = blockchain
         self._authorizationPool = authorization_pool
+        self.app = Flask(__name__)
+
+        @self.app.route('/')
+        def hello_world():
+            return render_template('form.html')
+
+        @self.app.route('/', methods=['POST'])
+        def my_form_post():
+            text = request.form['text']
+            print(type(text))
+            processed_text = text.upper()
+            return processed_text
+
+        @self.app.route('/mine', methods=['GET'])
+        def mine():
+            new_block = node.new_block()
+            response = new_block.to_json()
+            return jsonify(response), 200
+
+        @self.app.route('/authorization/pool', methods=['GET'])
+        def list_authorizations():
+            response = node.get_authorization_pool()
+            return jsonify(response), 200
+
+        @self.app.route('/authorization/new', methods=['POST'])
+        def new_authorization():
+            get_json = request.get_json()
+            required = ['inputs', 'outputs', 'duration', 'timestamp']
+            if not all(k in get_json for k in required):
+                return 'Missing values', 400
+            get_authorization = json.load(get_json)
+
+            # Create a new Transaction
+            authorization = Authorization(get_authorization['inputs'], get_authorization['outputs'],
+                                          get_authorization['duration'], get_authorization['timestamp'])
+            node.add_authorization(authorization)
+            response = authorization.to_json()
+            return jsonify(response), 201
+
+        @self.app.route('/blockchain', methods=['GET'])
+        def list_blockchain():
+            response = node.get_blockchain().to_json()
+            return jsonify(response), 200
+
+        @self.app.route('/neighbor/add')
+        def add_page():
+            return render_template('form.html')
+
+        @self.app.route('/neighbor/add', methods=['POST'])
+        def add_neighbor():
+            neighbor = request.form['text']
+            print('add neighbor')
+            print(neighbor)
+            if neighbor is None:
+                return "Error: Please supply a valid list of neighbors", 400
+            add = node.add_neighbor(neighbor)
+            if add:
+                response = node.get_neighbors()
+                return jsonify(list(response)), 201
+            else:
+                response = ['invalid address, it should be like x.x.x.x:port']
+                return jsonify(list(response)), 201
+
+        @self.app.route('/neighbor/list', methods=['GET'])
+        def list_neighbors():
+            neighbors = node.get_neighbors()
+            response = {
+                'neighbors': list(neighbors)
+            }
+            return jsonify(response), 200
+
+    def start(self, port):
+        self.app.run(host='127.0.0.1', port=port)
+        return
 
     def set_ip(self, ip: str):
         self._ip = ip
@@ -34,9 +107,14 @@ class Node:
         return self._port
 
     def add_neighbor(self, address):
-        parsed_url = urlparse(address)
-        self._neighborList.add(parsed_url.netloc)
-        return
+        if len(address.split(':')) != 2:
+            return False
+        ip = address.split(':')[0]
+        port = address.split(':')[1]
+        if is_valid_ip(ip) and port.isdigit():
+            self._neighborList.add(address)
+            return True
+        return False
 
     def add_authorization(self, authorization):
         if authorization in self._authorizationPool or not authorization.valid(self._blockchain):
@@ -133,70 +211,6 @@ class Node:
         return self._authorizationPool
 
 
-app = Flask(__name__)
-node = Node()
-
-
-@app.route('/mine', methods=['GET'])
-def mine():
-    new_block = node.new_block()
-    response = new_block.to_json()
-    return jsonify(response), 200
-
-
-@app.route('/authorization/pool', methods=['GET'])
-def list_authorizations():
-    response = node.get_authorization_pool()
-    return jsonify(response), 200
-
-
-@app.route('/authorization/new', methods=['POST'])
-def new_authorization():
-    get_json = request.get_json()
-    required = ['inputs', 'outputs', 'duration', 'timestamp']
-    if not all(k in get_json for k in required):
-        return 'Missing values', 400
-    get_authorization = json.load(get_json)
-
-    # Create a new Transaction
-    authorization = Authorization(get_authorization['inputs'], get_authorization['outputs'],
-                                  get_authorization['duration'],get_authorization['timestamp'])
-    node.add_authorization(authorization)
-    response = authorization.to_json()
-    return jsonify(response), 201
-
-
-@app.route('/blockchain', methods=['GET'])
-def list_blockchain():
-    response = node.get_blockchain().to_json()
-    return jsonify(response), 200
-
-
-@app.route('/neighbor/add', methods=['POST'])
-def add_neighbor():
-    print('add neighbor')
-    neighbors = request.get_json().get('neighbors')
-    if neighbors is None:
-        return "Error: Please supply a valid list of neighbors", 400
-    for neighbor in neighbors:
-        print(neighbor)
-        node.add_neighbor(neighbor)
-    response = node.get_neighbors()
-    return jsonify(list(response)), 201
-
-
-@app.route('/neighbor/list', methods=['GET'])
-def list_neighbors():
-    neighbors = node.get_neighbors()
-    response = {
-        'neighbors': list(neighbors)
-    }
-    return jsonify(response), 200
-
-
-def start(port):
-    app.run(host='127.0.0.1', port=port)
-
 if __name__ == '__main__':
-    start(5000)
-
+    node = Node()
+    node.start(9000)

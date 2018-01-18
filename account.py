@@ -27,6 +27,12 @@ class Account:
             print(address.get_pubkey())
         return [address.get_pubkey() for address in self._addressList]
 
+    def sign_message(self, message, index):
+        if index > len(self._addressList):
+            logging.error('index out of range')
+            return None
+        return list(self._addressList)[index].sign_message(message)
+
 
 if __name__ == '__main__':
     a = Account()
