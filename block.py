@@ -3,9 +3,12 @@ import time
 
 
 class Block:
-    def __init__(self, prev_hash=0, authorizations=[], hash_root="5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+    def __init__(self, prev_hash=0, authorizations=None, hash_root="5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
                  timestamp=time.time(), now_hash="fff", nonce=0):
-        self._authorizations = authorizations
+        if authorizations is None:
+            self._authorizations = []
+        else:
+            self._authorizations = authorizations
         self._hashRoot = hash_root
         self._timestamp = timestamp
         self._prevHash = prev_hash
@@ -87,10 +90,10 @@ class Block:
             'timestamp': self._timestamp,
             'hash_root': self._hashRoot,
             'nonce': self._nonce,
-            'authorizations': {}
+            'authorizations': []
         }
         for authorization in self._authorizations:
-            json['authorizations'].add(authorization.to_json())
+            json['authorizations'].append(authorization.to_json())
         return json
 
     def __str__(self):

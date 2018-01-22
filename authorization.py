@@ -6,7 +6,7 @@ from output import Output
 
 
 class Authorization:
-    def __init__(self, inputs=[], outputs=[], duration: Duration=None, timestamp=None):
+    def __init__(self, inputs=[], outputs=[], duration=None, timestamp=None):
         self._inputs = inputs
         self._outputs = outputs
         if duration is None:

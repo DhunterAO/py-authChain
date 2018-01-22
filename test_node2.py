@@ -1,3 +1,3 @@
-from node import start
+from node import Node
 
-start(9002)
+node2 = Node()

@@ -30,10 +30,38 @@ class Node:
             processed_text = text.upper()
             return processed_text
 
-        @self.app.route('/mine', methods=['GET'])
-        def mine():
-            new_block = node.new_block()
-            response = new_block.to_json()
+        @self.app.route('/neighbor/add')
+        def submit_neighbor():
+            return render_template('submit_neighbor.html')
+
+        @self.app.route('/neighbor/add', methods=['POST'])
+        def add_neighbor():
+            neighbors = request.form['text']
+            print('add neighbors')
+            print(neighbors)
+            neighbors = json.loads(neighbors)
+            if neighbors is None:
+                return "Error: Please supply a valid list of neighbors", 400
+            response = []
+            for neighbor in neighbors:
+                add = node.add_neighbor(neighbor)
+                if not add:
+                    info = neighbor + ' is invalid address, address should be like x.x.x.x:port'
+                    response.append(info)
+            response += list(node.get_neighbors())
+            return jsonify(list(response)), 201
+
+        @self.app.route('/neighbor/list', methods=['GET'])
+        def list_neighbors():
+            neighbors = node.get_neighbors()
+            response = {
+                'neighbors': list(neighbors)
+            }
+            return jsonify(response), 200
+
+        @self.app.route('/blockchain', methods=['GET'])
+        def list_blockchain():
+            response = node.get_blockchain().to_json()
             return jsonify(response), 200
 
         @self.app.route('/authorization/pool', methods=['GET'])
@@ -41,13 +69,27 @@ class Node:
             response = node.get_authorization_pool()
             return jsonify(response), 200
 
-        @self.app.route('/authorization/new')
+        @self.app.route('/authorization/add')
         def submit_authorization():
-            return render_template('new_transaction.html')
+            return render_template('submit_transaction.html')
 
-        @self.app.route('/authorization/new', methods=['POST'])
-        def new_authorization():
-            get_json = request.form['text']
+        @self.app.route('/authorization/add', methods=['POST'])
+        def add_authorization():
+            get_json = json.loads(request.form['text'])
+            required = ['inputs', 'outputs', 'duration', 'timestamp']
+            if not all(k in get_json for k in required):
+                return 'Missing values', 400
+
+            # Create a new Transaction
+            authorization = Authorization(get_json['inputs'], get_json['outputs'],
+                                          get_json['duration'], get_json['timestamp'])
+            node.add_authorization(authorization)
+            response = authorization.to_json()
+            return jsonify(response), 201
+
+        @self.app.route('/authorization/receive', methods=['POST'])
+        def receive_authorization():
+            get_json = request.get_json()
             required = ['inputs', 'outputs', 'duration', 'timestamp']
             if not all(k in get_json for k in required):
                 return 'Missing values', 400
@@ -60,37 +102,24 @@ class Node:
             response = authorization.to_json()
             return jsonify(response), 201
 
-        @self.app.route('/blockchain', methods=['GET'])
-        def list_blockchain():
-            response = node.get_blockchain().to_json()
+        @self.app.route('/mine', methods=['GET'])
+        def mine():
+            new_block = node.new_block()
+            response = new_block.to_json()
             return jsonify(response), 200
 
-        @self.app.route('/neighbor/add')
-        def submit_neighbor():
-            return render_template('new_neighbor.html')
+        @self.app.route('/block/add')
+        def submit_block():
+            return render_template('submit_block.html')
 
-        @self.app.route('/neighbor/add', methods=['POST'])
-        def add_neighbor():
-            neighbor = request.form['text']
-            print('add neighbor')
-            print(neighbor)
-            if neighbor is None:
-                return "Error: Please supply a valid list of neighbors", 400
-            add = node.add_neighbor(neighbor)
-            if add:
-                response = node.get_neighbors()
-                return jsonify(list(response)), 201
-            else:
-                response = ['invalid address, it should be like x.x.x.x:port']
-                return jsonify(list(response)), 201
+        @self.app.route('/block/add', methods=['POST'])
+        def add_block():
+            get_json = request.form['text']
+            return render_template('submit_block.html')
 
-        @self.app.route('/neighbor/list', methods=['GET'])
-        def list_neighbors():
-            neighbors = node.get_neighbors()
-            response = {
-                'neighbors': list(neighbors)
-            }
-            return jsonify(response), 200
+        @self.app.route('/block/receive', methods=['POST'])
+        def receive_block():
+            return render_template('submit_block.html')
 
     def start(self, port):
         self.app.run(host='127.0.0.1', port=port)
@@ -156,7 +185,7 @@ class Node:
         max_length = len(self._blockchain)
         # Grab and verify the chains from all the nodes in our neighbors
         for neighbor in self._neighborList:
-            response = requests.get(f'http://{neighbor}/chain')
+            response = requests.get(f'http://{neighbor}/blockchain')
             if response.status_code == 200:
                 length = response.json()['length']
                 chain = response.json()['chain']
@@ -172,7 +201,7 @@ class Node:
     def broad_block(self, block, banned=None):
         for neighbor in self._neighborList:
             if neighbor != banned:
-                requests.post(f'http://{neighbor}/receive_block', block)
+                requests.post(f'http://{neighbor}/block/receive', block)
         return
 
     def receive_block(self, block, source):
@@ -198,11 +227,11 @@ class Node:
 
         :return: New Block
         """
-        print(0)
+        #print(0)
         new_block = self._blockchain.generate_new_block(self._authorizationPool)
-        print(1)
+        #print(1)
         self.broad_block(new_block)
-        print(2)
+        #print(2)
         return new_block
 
     def get_blockchain(self):

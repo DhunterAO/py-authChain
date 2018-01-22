@@ -1,5 +1,3 @@
-from node import start, add_neighbor
+from node import Node
 
-start(9000)
-add_neighbor("127.0.0.1:9002")
-print(1)
+node1 = Node()

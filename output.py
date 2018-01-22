@@ -30,7 +30,7 @@ class Output:
 
     def valid(self, givens):
         for given in givens:
-            if self._dataURL.valid(given[0],given[1]) and self._limit.valid(given[2]):
+            if self._dataURL.valid(given[0], given[1]) and self._limit.valid(given[2]):
                 return True
         return False
 

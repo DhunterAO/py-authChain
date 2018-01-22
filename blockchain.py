@@ -1,13 +1,14 @@
 from block import Block
 import logging
 import constant
+from constant import GENESIS_BLOCK
 
 
 class Blockchain:
     def __init__(self, genesis_block=None, blockchain=None,
                  difficulty="0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"):
         if genesis_block is None:
-            genesis_block = constant.genesis_block
+            genesis_block = GENESIS_BLOCK
         if blockchain is None:
             self._blockchain = []
             self._blockchain.append(genesis_block)
@@ -58,11 +59,11 @@ class Blockchain:
         return new_block
 
     def valid(self):
-        if not self._blockchain[0].valid(self) or self._blockchain[0].get_now_hash > self._difficulty:
+        if self._blockchain[0] != GENESIS_BLOCK:
             return False
         for i in range(1, len(self._blockchain)):
             if self._blockchain[i].get_prev_hash != self._blockchain[i-1].get_now_hash \
-                    or self._blockchain[-1].get_now_hash > self._difficulty:
+                    or self._blockchain[i].get_now_hash > self._difficulty:
                 return False
             if not self._blockchain[i].valid(self):
                 return False
@@ -79,3 +80,4 @@ if __name__ == '__main__':
     my_chain = Blockchain()
     gen_block = my_chain.get_block(0)
     print(gen_block.to_json())
+    print(my_chain.valid())
