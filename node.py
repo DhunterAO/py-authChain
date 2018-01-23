@@ -1,10 +1,17 @@
 from flask import Flask, request, jsonify, render_template
-from util import is_valid_ip
+from util import is_valid_ip, verify_signature
 from account import Account
 from blockchain import Blockchain
+from duration import Duration
+from input import Input
+from output import Output
+from dataURL import DataURL
+from constant import MAX_DATA_RANGE
 from authorization import Authorization
 import requests
+import hashlib
 import json
+import time
 import socket
 
 
@@ -17,6 +24,7 @@ class Node:
         self._account = account
         self._blockchain = blockchain
         self._authorizationPool = authorization_pool
+        self._database = []
         self.app = Flask(__name__)
 
         @self.app.route('/')
@@ -61,21 +69,17 @@ class Node:
 
         @self.app.route('/blockchain', methods=['GET'])
         def list_blockchain():
-            response = node.get_blockchain().to_json()
+            response = self.get_blockchain().to_json()
             return jsonify(response), 200
 
         @self.app.route('/authorization/pool', methods=['GET'])
         def list_authorizations():
-            response = node.get_authorization_pool()
+            response = self.get_authorization_pool()
             return jsonify(response), 200
-
-        @self.app.route('/authorization/add')
-        def submit_authorization():
-            return render_template('submit_transaction.html')
 
         @self.app.route('/authorization/add', methods=['POST'])
         def add_authorization():
-            get_json = json.loads(request.form['text'])
+            get_json = json.loads(request)
             required = ['inputs', 'outputs', 'duration', 'timestamp']
             if not all(k in get_json for k in required):
                 return 'Missing values', 400
@@ -104,7 +108,7 @@ class Node:
 
         @self.app.route('/mine', methods=['GET'])
         def mine():
-            new_block = node.new_block()
+            new_block = self.new_block()
             response = new_block.to_json()
             return jsonify(response), 200
 
@@ -115,14 +119,120 @@ class Node:
         @self.app.route('/block/add', methods=['POST'])
         def add_block():
             get_json = request.form['text']
-            return render_template('submit_block.html')
+            return get_json
 
         @self.app.route('/block/receive', methods=['POST'])
         def receive_block():
             return render_template('submit_block.html')
 
-    def start(self, port):
-        self.app.run(host='127.0.0.1', port=port)
+
+
+
+
+
+        # some functions to solve data
+
+        @self.app.route('/data/upload', methods=['POST'])
+        def upload_data():
+            if len(self._database) >= MAX_DATA_RANGE:
+                return 'no enough storage', 400
+            get_json = request.get_json()
+            required = ['public_key', 'data', 'timestamp', 'signature']
+            if not all(k in get_json for k in required):
+                return 'Missing values', 400
+
+            timestamp = get_json['timestamp']
+            if timestamp+600 < time.time():
+                return 'Request expired', 400
+            public_key = get_json['public_key']
+            data = get_json['data']
+            hash = hashlib.sha256((str(data)+str(timestamp)).encode()).hexdigest()
+            signature = get_json['signature']
+            if not verify_signature(public_key, hash, signature):
+                return 'Signature unmatched', 400
+            self._database.append(data)
+
+            input = Input(0, 0, 0)
+            data_url = DataURL(len(self._database)-1, len(self._database))
+            output = Output(recipient=public_key, data_url=data_url)
+            authorization = Authorization(inputs=[input], outputs=[output], duration=Duration(), timestamp=time.time())
+            response =
+            response = {
+                'data_url': data_url.to_json()
+            }
+            return jsonify(response)
+
+        @self.app.route('/data/delete', methods=['POST'])
+        def delete_data():
+            get_json = request.get_json()
+            output_position = get_json['output_position']
+            output = self._blockchain.get_output(output_position['block_number'],
+                                                 output_position['authorization_number'],
+                                                 output_position['output_number'])
+            if not output.valid_limit(4):
+                response = {
+                    'error': "limit out of range"
+                }
+                return jsonify(response)
+
+            if not output.valid_dataURL(get_json['data_url']):
+                response = {
+                    'error': "data_url out of range"
+                }
+                return jsonify(response)
+
+            return
+
+        @self.app.route('/data/update', methods=['POST'])
+        def update_data():
+            get_json = request.get_json()
+            output_position = get_json['output_position']
+            output = self._blockchain.get_output(output_position['block_number'],
+                                                 output_position['authorization_number'],
+                                                 output_position['output_number'])
+            if not output.valid_limit(6):
+                response = {
+                    'error': "limit out of range"
+                }
+                return jsonify(response)
+
+            if not output.valid_dataURL(get_json['data_url']):
+                response = {
+                    'error': "data_url out of range"
+                }
+                return jsonify(response)
+
+            return
+
+        @self.app.route('/data/read', methods=['POST'])
+        def read_data():
+            get_json = request.get_json()
+            output_position = get_json['output_position']
+            output = self._blockchain.get_output(output_position['block_number'],
+                                                 output_position['authorization_number'],
+                                                 output_position['output_number'])
+            if not output.valid_limit(1):
+                response = {
+                    'error': "limit out of range"
+                }
+                return jsonify(response)
+
+            if not output.valid_dataURL(get_json['data_url']):
+                response = {
+                    'error': "data_url out of range"
+                }
+                return jsonify(response)
+
+            return
+
+        @self.app.route('/outputs/update', methods=['POST'])
+        def update_outputs():
+            get_json = request.get_json()
+
+            return
+
+    def start(self):
+        self.app.run(host='127.0.0.1', port=self._port)
         return
 
     def set_ip(self, ip: str):

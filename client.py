@@ -105,28 +105,56 @@ class Client:
             logging.error('invalid response')
             return False
 
-    def read_delete_data(self, server_address, data_url, op, address_index=0):
+    def read_data(self, server_address, data_url, output, address_index=0):
         """
 
         :param server_address:
         :param data_url:
-        :param op: 0 means read, while 1 means delete
+        :param output:
         :param address_index:
         :return:
         """
         public_key = self._account.get_address(address_index).get_pubkey()
         now_time = time.time()
-        hash = hashlib.sha256((str(data_url)+str(op)+str(now_time)).encode()).hexdigest()
+        hash = hashlib.sha256((str(data_url)+str(now_time)+str(0)).encode()).hexdigest()
         signature = self._account.sign_message(hash, address_index)
         send_json = {
             'public_key': public_key,
             'data_url': data_url.to_json(),
-            'op': op,
+            'output': output,
             'timestamp': now_time,
-            'signature': signature
+            'signature': signature,
+            'op': 0
         }
 
-        response = requests.post(f"http://{server_address}/data/add_delete", json=send_json)
+        response = requests.post(f"http://{server_address}/data/read", json=send_json)
+        if response.status_code == 200:
+            return True
+        else:
+            logging.error('invalid response')
+            return False
+
+    def delete_data(self, server_address, data_url, address_index=0):
+        """
+
+        :param server_address:
+        :param data_url:
+        :param address_index:
+        :return:
+        """
+        public_key = self._account.get_address(address_index).get_pubkey()
+        now_time = time.time()
+        hash = hashlib.sha256((str(data_url)+str(now_time)+str(1)).encode()).hexdigest()
+        signature = self._account.sign_message(hash, address_index)
+        send_json = {
+            'public_key': public_key,
+            'data_url': data_url.to_json(),
+            'timestamp': now_time,
+            'signature': signature,
+            'op': 1
+        }
+
+        response = requests.post(f"http://{server_address}/data/delete", json=send_json)
         if response.status_code == 200:
             return True
         else:
@@ -138,7 +166,8 @@ class Client:
         Upload data to server and get back the dataURL
 
         :param server_address: x.x.x.x:port
-        :param data: data you want to upload
+        :param data: data you want to update
+        :param data_url: data position
         :param address_index: address index in address_list
         :return: dataURL where the data stores
         """

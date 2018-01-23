@@ -37,7 +37,7 @@ class Duration:
 if __name__ == '__main__':
     d = Duration(1000)
     print(str(d))
-    d.set(10000000000000000,20)
+    d.set(10000000000000000, 20)
     print(str(d))
     print(d.valid(110))
     print(time.time())

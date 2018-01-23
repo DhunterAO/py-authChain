@@ -5,10 +5,8 @@ from constant import GENESIS_BLOCK
 
 
 class Blockchain:
-    def __init__(self, genesis_block=None, blockchain=None,
+    def __init__(self, genesis_block=GENESIS_BLOCK, blockchain=None,
                  difficulty="0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"):
-        if genesis_block is None:
-            genesis_block = GENESIS_BLOCK
         if blockchain is None:
             self._blockchain = []
             self._blockchain.append(genesis_block)

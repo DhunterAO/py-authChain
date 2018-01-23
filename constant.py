@@ -30,7 +30,7 @@ MAX_DATA_RANGE = 1000000
     private_key: ae4d632b868f04b9fc9b69898f4a8a555f10c64e35cf7692
     or b'\xaeMc+\x86\x8f\x04\xb9\xfc\x9bi\x89\x8fJ\x8aU_\x10\xc6N5\xcfv\x92'
 """
-server_address = Address("ae4d632b868f04b9fc9b69898f4a8a555f10c64e35cf7692")
+SERVER_ADDRESS = Address("ae4d632b868f04b9fc9b69898f4a8a555f10c64e35cf7692")
 
 out = Output(recipient='59be9bbd5224fb4d69a861c3cd934ca07e2e56de148e988fcff7df8f47b98bcac15c0e3427433004e0a650cde005f4d5',
              data_url=DataURL(0, MAX_DATA_RANGE), limit=7)
