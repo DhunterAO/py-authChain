@@ -12,12 +12,11 @@ import requests
 import hashlib
 import json
 import time
-import socket
 
 
 class Node:
-    def __init__(self, ip="127.0.0.1", port=9000, neighbor_list=set(),
-                 account=Account(), blockchain=Blockchain(), authorization_pool=set()):
+    def __init__(self, ip="127.0.0.1", port=9000, neighbor_list=[],
+                 account=Account(), blockchain=Blockchain(), authorization_pool=[]):
         self._ip = ip
         self._port = port
         self._neighborList = neighbor_list
@@ -125,105 +124,209 @@ class Node:
         def receive_block():
             return render_template('submit_block.html')
 
-
-
-
-
-
         # some functions to solve data
-
         @self.app.route('/data/upload', methods=['POST'])
         def upload_data():
-            if len(self._database) >= MAX_DATA_RANGE:
-                return 'no enough storage', 400
+            # check if got enough values
             get_json = request.get_json()
-            required = ['public_key', 'data', 'timestamp', 'signature']
+            required = ['public_key', 'data', 'timestamp', 'op', 'signature']
             if not all(k in get_json for k in required):
                 return 'Missing values', 400
-
-            timestamp = get_json['timestamp']
-            if timestamp+600 < time.time():
-                return 'Request expired', 400
             public_key = get_json['public_key']
             data = get_json['data']
-            hash = hashlib.sha256((str(data)+str(timestamp)).encode()).hexdigest()
+            timestamp = get_json['timestamp']
+            op = get_json['op']
+            hash = hashlib.sha256((str(data) + str(timestamp) + str(0)).encode()).hexdigest()
             signature = get_json['signature']
+
+            # check if op is upload operation
+            if op != 0:
+                return 'op is not matched!', 400
+
+            # check if there is enough room
+            if len(self._database) + len(get_json['data']) >= MAX_DATA_RANGE:
+                return 'no enough storage', 400
+
+            # check if timestamp is not expired
+            if timestamp + 600 < time.time():
+                return 'Request expired', 400
+
+            # check if signature is matched
             if not verify_signature(public_key, hash, signature):
                 return 'Signature unmatched', 400
-            self._database.append(data)
 
+            # everything is fine then store data into database
+            if type(data) is 'list':
+                self._database += data
+            else:
+                self._database.append(data)
+
+            # generate a new authorization
             input = Input(0, 0, 0)
-            data_url = DataURL(len(self._database)-1, len(self._database))
-            output = Output(recipient=public_key, data_url=data_url)
-            authorization = Authorization(inputs=[input], outputs=[output], duration=Duration(), timestamp=time.time())
-            response =
-            response = {
-                'data_url': data_url.to_json()
-            }
-            return jsonify(response)
 
+            if type(data) is 'list':
+                data_url = DataURL(len(self._database) - len(data), len(self._database))
+            else:
+                data_url = DataURL(len(self._database) - 1, len(self._database))
+            output = Output(recipient=public_key, data_url=data_url)
+
+            authorization = Authorization(inputs=[input], outputs=[output], duration=Duration(), timestamp=time.time())
+
+            # store this authorization and broadcast it
+            auth_number = self.add_authorization(authorization)
+
+            # return the position of authorization to client
+            response = {
+                'block_number': self._blockchain.get_height(),
+                'auth_number': auth_number,
+                'output_number': 0
+            }
+            return jsonify(response), 201
+
+        # receive delete request
         @self.app.route('/data/delete', methods=['POST'])
         def delete_data():
+            # check if got enough values
             get_json = request.get_json()
+            required = ['public_key', 'data_url', 'timestamp', 'output_position', 'op', 'signature']
+            if not all(k in get_json for k in required):
+                return 'Missing values', 400
+            public_key = get_json['public_key']
+            data_url = get_json['data_url']
+            timestamp = get_json['timestamp']
             output_position = get_json['output_position']
+            op = get_json['op']
+            hash = hashlib.sha256((str(data_url) + str(timestamp) + str(output_position) + str(1)).encode()).hexdigest()
+            signature = get_json['signature']
+
+            # check if op is delete operation
+            if op != 1:
+                return 'op is not matched!', 400
+
+            # get output from the output_position and check the limit and data_url
             output = self._blockchain.get_output(output_position['block_number'],
                                                  output_position['authorization_number'],
                                                  output_position['output_number'])
             if not output.valid_limit(4):
-                response = {
-                    'error': "limit out of range"
-                }
-                return jsonify(response)
+                return 'error: limit out of range', 400
+            if not output.valid_data_url(data_url.get_start(), data_url.get_end()):
+                return 'error: data_url out of range', 400
 
-            if not output.valid_dataURL(get_json['data_url']):
-                response = {
-                    'error': "data_url out of range"
-                }
-                return jsonify(response)
+            # check if timestamp is not expired
+            if timestamp + 600 < time.time():
+                return 'Request expired', 400
 
-            return
+            # check if signature is matched
+            if not verify_signature(public_key, hash, signature):
+                return 'Signature unmatched', 400
+
+            # if everything is fine then delete the data in data_url
+            start = data_url['start']
+            end = data_url['end']
+            for i in range(start, end):
+                self._database[i] = 0
+
+            # return the delete information to client
+            return 'delete successfully!', 201
 
         @self.app.route('/data/update', methods=['POST'])
         def update_data():
+            # check if got enough values
             get_json = request.get_json()
+            required = ['public_key', 'data', 'data_url', 'timestamp', 'output_position', 'op', 'signature']
+            if not all(k in get_json for k in required):
+                return 'Missing values', 400
+            public_key = get_json['public_key']
+            data = get_json['data']
+            data_url = get_json['data_url']
+            timestamp = get_json['timestamp']
             output_position = get_json['output_position']
+            op = get_json['op']
+            hash = hashlib.sha256((str(data_url) + str(timestamp) + str(output_position) + str(1)).encode()).hexdigest()
+            signature = get_json['signature']
+
+            # check if op is update operation
+            if op != 2:
+                return 'op is not matched!', 400
+
+            # get output from the output_position and check the limit and data_url
             output = self._blockchain.get_output(output_position['block_number'],
                                                  output_position['authorization_number'],
                                                  output_position['output_number'])
-            if not output.valid_limit(6):
-                response = {
-                    'error': "limit out of range"
-                }
-                return jsonify(response)
+            if not output.valid_limit(4):
+                return 'error: limit out of range', 400
+            if not output.valid_data_url(data_url.get_start(), data_url.get_end()):
+                return 'error: data_url out of range', 400
 
-            if not output.valid_dataURL(get_json['data_url']):
-                response = {
-                    'error': "data_url out of range"
-                }
-                return jsonify(response)
+            # check if timestamp is not expired
+            if timestamp + 600 < time.time():
+                return 'Request expired', 400
 
-            return
+            # check if signature is matched
+            if not verify_signature(public_key, hash, signature):
+                return 'Signature unmatched', 400
+
+            # check if there is enough room
+            start = data_url['start']
+            end = data_url['end']
+
+            if isinstance(data, list) and len(data) > start - end:
+                return 'no enough storage', 400
+
+            # if everything is fine then update the data in data_url
+            if isinstance(data, list):
+                for i in range(start, start+len(data)):
+                    self._database[i] = data[i-len(data)]
+                for i in range(start+len(data), end):
+                    self._database[i] = 0
+            else:
+                self._database[start] = data
+                for i in range(start+1, end):
+                    self._database[i] = 0
+
+            # return the update information to client
+            return 'update successfully!', 201
 
         @self.app.route('/data/read', methods=['POST'])
         def read_data():
+            # check if got enough values
             get_json = request.get_json()
+            required = ['public_key', 'data_url', 'timestamp', 'output_position', 'op', 'signature']
+            if not all(k in get_json for k in required):
+                return 'Missing values', 400
+            public_key = get_json['public_key']
+            data_url = get_json['data_url']
+            timestamp = get_json['timestamp']
             output_position = get_json['output_position']
+            op = get_json['op']
+            hash = hashlib.sha256((str(data_url) + str(timestamp) + str(output_position) + str(1)).encode()).hexdigest()
+            signature = get_json['signature']
+
+            # check if op is read operation
+            if op != 3:
+                return 'op is not matched!', 400
+
+            # get output from the output_position and check the limit and dataurl
             output = self._blockchain.get_output(output_position['block_number'],
                                                  output_position['authorization_number'],
                                                  output_position['output_number'])
-            if not output.valid_limit(1):
-                response = {
-                    'error': "limit out of range"
-                }
-                return jsonify(response)
-
+            if not output.valid_limit(4):
+                return 'error: limit out of range', 400
             if not output.valid_dataURL(get_json['data_url']):
-                response = {
-                    'error': "data_url out of range"
-                }
-                return jsonify(response)
+                return 'error: data_url out of range', 400
 
-            return
+            # check if timestamp is not expired
+            if timestamp + 600 < time.time():
+                return 'Request expired', 400
+
+            # check if signature is matched
+            if not verify_signature(public_key, hash, signature):
+                return 'Signature unmatched', 400
+
+            # if everything is fine then return the data in data_url
+            start = data_url['start']
+            end = data_url['end']
+            return self._database[start:end], 201
 
         @self.app.route('/outputs/update', methods=['POST'])
         def update_outputs():
@@ -262,9 +365,9 @@ class Node:
     def add_authorization(self, authorization):
         if authorization in self._authorizationPool or not authorization.valid(self._blockchain):
             return
-        self._authorizationPool.add(authorization)
+        self._authorizationPool.append(authorization)
         self.broad_authorization(authorization)
-        return
+        return len(self._authorizationPool) - 1
 
     def broad_authorization(self, authorization, banned=None):
         for neighbor in self._neighborList:
@@ -275,7 +378,7 @@ class Node:
     def receive_authorization(self, authorization, source):
         if authorization in self._authorizationPool or not authorization.valid(self._blockchain):
             return
-        self._authorizationPool.add(authorization)
+        self._authorizationPool.append(authorization)
         self.broad_authorization(authorization, source)
         return
 
@@ -337,11 +440,11 @@ class Node:
 
         :return: New Block
         """
-        #print(0)
+        # print(0)
         new_block = self._blockchain.generate_new_block(self._authorizationPool)
-        #print(1)
+        # print(1)
         self.broad_block(new_block)
-        #print(2)
+        # print(2)
         return new_block
 
     def get_blockchain(self):
@@ -355,5 +458,5 @@ class Node:
 
 
 if __name__ == '__main__':
-    node = Node()
-    node.start(9000)
+    node = Node(port=9000)
+    node.start()

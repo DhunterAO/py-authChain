@@ -17,6 +17,9 @@ class Blockchain:
                 return
         self._difficulty = difficulty
 
+    def get_height(self):
+        return len(self._blockchain)
+
     def to_json(self):
         json = {
             'height': len(self._blockchain),

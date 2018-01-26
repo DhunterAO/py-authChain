@@ -1,5 +1,5 @@
 import hashlib
-
+from constant import SERVER_ADDRESS
 from account import Account
 from dataURL import DataURL
 
@@ -22,6 +22,11 @@ class Client:
             self._outputs = set()
         else:
             self._outputs = outputs
+
+    # some universal functions
+    def to_json(self):
+        # print(type(self._account.to_json()))
+        return self._account.to_json()
 
     # some functions about account
 
@@ -46,19 +51,19 @@ class Client:
     def store_account(self, file='account.txt'):
         account_path = os.path.join(self._path, file)
         with open(account_path, 'w') as f:
-            f.write(json.dumps(self.to_json()))
+            f.write(str(self.to_json()))
         return
 
     # some functions about outputs
 
     def update_outputs(self, server_address, address_index=0):
         public_key = self._account.get_address(address_index).get_pubkey()
-        now_time = time.time()
-        hash = hashlib.sha256((str(now_time)).encode()).hexdigest()
+        timestamp = time.time()
+        hash = hashlib.sha256((str(timestamp)).encode()).hexdigest()
         signature = self._account.sign_message(hash, address_index)
         send_json = {
             'public_key': public_key,
-            'timestamp': now_time,
+            'timestamp': timestamp,
             'signature': signature
         }
         response = requests.post(f"http://{server_address}/outputs/update", json=send_json)
@@ -84,51 +89,27 @@ class Client:
         :return: dataURL where the data stores
         """
         public_key = self._account.get_address(address_index).get_pubkey()
-        now_time = time.time()
-        hash = hashlib.sha256((str(data)+str(now_time)).encode()).hexdigest()
+        timestamp = time.time()
+        hash = hashlib.sha256((str(data)+str(timestamp)+str(0)).encode()).hexdigest()
         signature = self._account.sign_message(hash, address_index)
         send_json = {
             'public_key': public_key,
             'data': data,
-            'timestamp': now_time,
+            'timestamp': timestamp,
+            'op': 0,
             'signature': signature
         }
         response = requests.post(f"http://{server_address}/data/upload", json=send_json)
 
         if response.status_code == 200:
-            return_json = response.json()['data_url']
-            data_url = DataURL(return_json['start'], return_json['end'])
+            get_json = response.json()
+            required = ['data_url', 'limit', 'signature']
+            if not all(k in get_json for k in required):
+                return 'Missing values', 400
+
+            data_url = DataURL(get_json['data_url']['start'], get_json['data_url']['end'])
             out = Output(public_key, data_url, 7)
             self._outputs.add(out)
-            return True
-        else:
-            logging.error('invalid response')
-            return False
-
-    def read_data(self, server_address, data_url, output, address_index=0):
-        """
-
-        :param server_address:
-        :param data_url:
-        :param output:
-        :param address_index:
-        :return:
-        """
-        public_key = self._account.get_address(address_index).get_pubkey()
-        now_time = time.time()
-        hash = hashlib.sha256((str(data_url)+str(now_time)+str(0)).encode()).hexdigest()
-        signature = self._account.sign_message(hash, address_index)
-        send_json = {
-            'public_key': public_key,
-            'data_url': data_url.to_json(),
-            'output': output,
-            'timestamp': now_time,
-            'signature': signature,
-            'op': 0
-        }
-
-        response = requests.post(f"http://{server_address}/data/read", json=send_json)
-        if response.status_code == 200:
             return True
         else:
             logging.error('invalid response')
@@ -143,15 +124,17 @@ class Client:
         :return:
         """
         public_key = self._account.get_address(address_index).get_pubkey()
-        now_time = time.time()
-        hash = hashlib.sha256((str(data_url)+str(now_time)+str(1)).encode()).hexdigest()
+        timestamp = time.time()
+
+        hash = hashlib.sha256((str(data_url)+str(timestamp)+str(output_position)+str(1)).encode()).hexdigest()
         signature = self._account.sign_message(hash, address_index)
         send_json = {
             'public_key': public_key,
             'data_url': data_url.to_json(),
-            'timestamp': now_time,
-            'signature': signature,
-            'op': 1
+            'timestamp': timestamp,
+            'output_position': output_position,
+            'op': 1,
+            'signature': signature
         }
 
         response = requests.post(f"http://{server_address}/data/delete", json=send_json)
@@ -173,13 +156,14 @@ class Client:
         """
         public_key = self._account.get_address(address_index).get_pubkey()
         now_time = time.time()
-        hash = hashlib.sha256((str(data)+str(data_url)+str(now_time)).encode()).hexdigest()
+        hash = hashlib.sha256((str(data)+str(data_url)+str(now_time)+str(2)).encode()).hexdigest()
         signature = self._account.sign_message(hash, address_index)
         send_json = {
             'public_key': public_key,
             'data': data,
             'data_url': data_url,
             'timestamp': now_time,
+            'op': 2,
             'signature': signature
         }
         response = requests.post(f"http://{server_address}/data/update", json=send_json)
@@ -190,10 +174,39 @@ class Client:
             logging.error('invalid response')
             return False
 
-    # some universal functions
-    def to_json(self):
-        # print(type(self._account.to_json()))
-        return self._account.to_json()
+    def read_data(self, server_address, data_url, output, address_index=0):
+        """
+
+        :param server_address:
+        :param data_url:
+        :param output:
+        :param address_index:
+        :return:
+        """
+        public_key = self._account.get_address(address_index).get_pubkey()
+        timestamp = time.time()
+        hash = hashlib.sha256((str(data_url)+str(timestamp)+str(3)).encode()).hexdigest()
+        signature = self._account.sign_message(hash, address_index)
+        send_json = {
+            'public_key': public_key,
+            'data_url': data_url.to_json(),
+            'output': output,
+            'timestamp': timestamp,
+            'op': 3,
+            'signature': signature
+        }
+
+        response = requests.post(f"http://{server_address}/data/read", json=send_json)
+        if response.status_code == 200:
+            get_json = response.json()
+            required = ['data_url', 'limit', 'signature']
+            if not all(k in get_json for k in required):
+                return 'Missing values', 400
+            output = Output(public_key, get_json['data_url'], limit=get_json['limit'])
+            return True
+        else:
+            logging.error('invalid response')
+            return False
 
 
 if __name__ == '__main__':
@@ -201,10 +214,10 @@ if __name__ == '__main__':
     # print(1)
     client.create_address()
     # print(2)
-    # print(client.to_json())
+    print(client.to_json())
     # print(3)
     client.store_account()
     # print(4)
     client.load_account()
     # print(5)
-    # print(client.to_json())
+    print(client.to_json())

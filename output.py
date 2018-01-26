@@ -21,6 +21,9 @@ class Output:
     def get_data_url(self):
         return self._dataURL
 
+    def valid_data_url(self, start, end):
+        return self._dataURL.valid(start, end)
+
     def set_limit(self, limit):
         self._limit = limit
         return
