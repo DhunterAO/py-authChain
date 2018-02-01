@@ -1,18 +1,29 @@
-import time
-import hashlib
 from duration import Duration
 from input import Input
 from output import Output
 
+import time
+import hashlib
+import logging
+
 
 class Authorization:
-    def __init__(self, inputs=[], outputs=[], duration=None, timestamp=None):
-        self._inputs = inputs
-        self._outputs = outputs
+    def __init__(self, inputs=None, outputs=None, duration=None, timestamp=None):
+        if inputs is None:
+            self._inputs = []
+        else:
+            self._inputs = inputs
+
+        if outputs is None:
+            self._outputs = []
+        else:
+            self._outputs = outputs
+
         if duration is None:
             self._duration = Duration()
         else:
             self._duration = duration
+
         if timestamp is None:
             self._timestamp = time.time()
         else:
@@ -39,21 +50,6 @@ class Authorization:
     def calc_hash(self):
         return hashlib.sha256(str(self).encode('utf-8')).hexdigest()
 
-    def to_json(self):
-        inputs_json = []
-        for input in self._inputs:
-            inputs_json.append(input.to_json())
-        outputs_json = []
-        for output in self._outputs:
-            outputs_json.append(output.to_json())
-        json = {
-            'inputs': inputs_json,
-            'outputs': outputs_json,
-            'duration': self._duration.to_json(),
-            'timestamp': self._timestamp
-        }
-        return json
-
     def valid(self, blockchain):
         hash = self.calc_hash()
         givens = []
@@ -72,7 +68,51 @@ class Authorization:
         if not self._duration.valid(blockchain.get_height()):
             print('duration invalid')
             return False
+        return True
 
+    def to_json(self):
+        inputs_json = []
+        for input in self._inputs:
+            inputs_json.append(input.to_json())
+        outputs_json = []
+        for output in self._outputs:
+            outputs_json.append(output.to_json())
+        json = {
+            'inputs': inputs_json,
+            'outputs': outputs_json,
+            'duration': self._duration.to_json(),
+            'timestamp': self._timestamp
+        }
+        return json
+
+    def from_json(self, json):
+        required = ['inputs', 'outputs', 'duration', 'timestamp']
+        if not all(k in json for k in required):
+            logging.warning(f'value missing in {required}')
+            return False
+
+        if not isinstance(json['inputs'], list) or not isinstance(json['outputs'], list) \
+                or not isinstance(json['timestamp'], float):
+            logging.warning("inputs and outputs should be both type<list> and timestamp should be type<float>")
+            return False
+
+        for input in json['inputs']:
+            # print(json['inputs'])
+            i = Input()
+            if not i.from_json(input):
+                return False
+            self.add_input(i)
+
+        for output in json['outputs']:
+            o = Output()
+            if not o.from_json(output):
+                return False
+            self.add_output(o)
+
+        if not self._duration.from_json(json['duration']):
+            return False
+
+        self._timestamp = json['timestamp']
         return True
 
     def __str__(self):
@@ -88,17 +128,24 @@ class Authorization:
 
 if __name__ == '__main__':
     auth = Authorization()
-    print(time.time())
     print(auth.calc_hash())
     a = auth.calc_hash()
     auth.set_duration(100, 20)
+
     print(str(auth))
     b = auth.calc_hash()
     print(auth.calc_hash())
     print(type(a))
-    print(int(a,16))
-    print(int("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",16))
-    print(a<"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+    print(int(a, 16))
+    print(int("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16))
+    print(a < "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
     auth.add_input(Input())
-    auth.add_output(Output())
+    auth.add_output(Output('abc', 1, 2, 7))
 
+    print(auth.to_json())
+
+    c = Authorization()
+    print(c.to_json())
+    print('***********')
+    print(c.from_json(auth.to_json()))
+    print(c.to_json())

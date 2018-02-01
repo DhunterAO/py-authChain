@@ -1,16 +1,22 @@
 import hashlib
 import time
+import logging
+
+from authorization import Authorization
 
 
 class Block:
-    def __init__(self, prev_hash=0, authorizations=None, hash_root="5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
-                 timestamp=time.time(), now_hash="fff", nonce=0):
+    def __init__(self, prev_hash="fff", authorizations=None, hash_root="5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+                 timestamp=None, now_hash="fff", nonce=0):
         if authorizations is None:
             self._authorizations = []
         else:
             self._authorizations = authorizations
         self._hashRoot = hash_root
-        self._timestamp = timestamp
+        if timestamp is None:
+            self._timestamp = time.time()
+        else:
+            self._timestamp = timestamp
         self._prevHash = prev_hash
         self._nowHash = now_hash
         self._nonce = nonce
@@ -94,8 +100,37 @@ class Block:
         }
         for authorization in self._authorizations:
             json['authorizations'].append(authorization.to_json())
-        #print(json['authorizations'])
+        # print(json['authorizations'])
         return json
+
+    def from_json(self, json):
+        required = ['prev_hash', 'now_hash', 'timestamp', 'hash_root', 'nonce', 'authorizations']
+        if not all(k in json for k in required):
+            logging.warning(f'value missing in {required}')
+            return False
+
+        if not isinstance(json['prev_hash'], str) or not isinstance(json['now_hash'], str) \
+                or not isinstance(json['timestamp'], float) or not isinstance(json['hash_root'], str) \
+                or not isinstance(json['nonce'], int) or not isinstance(json['authorizations'], list):
+            logging.warning("prev_hash, now_hash and hash_root should be both type<str>, "
+                            "timestamp should be type<float>, nonce should be type<int> "
+                            "and authorizations should be type<list>")
+            return False
+
+        authorizations = []
+        for auth in json['authorizations']:
+            a = Authorization()
+            if not a.from_json(auth):
+                return False
+            authorizations.append(a)
+
+        self._prevHash = json['prev_hash']
+        self._nowHash = json['now_hash']
+        self._timestamp = json['timestamp']
+        self._hashRoot = json['hash_root']
+        self._nonce = json['nonce']
+        self._authorizations = authorizations
+        return True
 
     def __str__(self):
         return str(self._prevHash) + str(self._hashRoot) + str(self._nonce) + str(self._timestamp)
@@ -103,3 +138,9 @@ class Block:
 
 if __name__ == '__main__':
     block = Block()
+    print(block.to_json())
+
+    b = Block()
+    print(b.to_json())
+    print(b.from_json(block.to_json()))
+    print(b.to_json())

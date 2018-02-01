@@ -9,7 +9,7 @@ class DataURL:
         else:
             self._start = 0
             self._end = 0
-            logging.error("start should smaller or equal than end")
+            logging.warning("start should be less or equal than end")
         return
 
     def set(self, start, end):
@@ -17,14 +17,14 @@ class DataURL:
             self._start = start
             self._end = end
         else:
-            logging.error("start should smaller or equal than end")
+            logging.warning("start should be less or equal than end")
         return
 
     def set_start(self, start):
         if start <= self._end:
             self._start = start
         else:
-            logging.error("start should smaller or equal than end")
+            logging.warning("start should be less or equal than end")
         return
 
     def get_start(self):
@@ -34,7 +34,7 @@ class DataURL:
         if end >= self._start:
             self._end = end
         else:
-            logging.error("start should smaller or equal than end")
+            logging.warning("start should be less or equal than end")
         return
 
     def get_end(self):
@@ -52,6 +52,20 @@ class DataURL:
             'end': self._end
         }
         return json
+
+    def from_json(self, json):
+        required = ['start', 'end']
+        if not all(k in json for k in required):
+            logging.warning(f"value missing in {required}")
+            return False
+
+        if not isinstance(json['start'], int) or not isinstance(json['end'], int) or json['start']>json['end']:
+            logging.warning("start and end should be both type<int> and start should be less or equal than end")
+            return False
+
+        self._start = json['start']
+        self._end = json['end']
+        return True
 
     def __str__(self):
         return str(self._start) + str(self._end)

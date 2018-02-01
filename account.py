@@ -38,6 +38,12 @@ class Account:
             return None
         return self._addressList[index].sign_message(message)
 
+    def valid(self):
+        for address in self._addressList:
+            if not address.valid():
+                return False
+        return True
+
     def to_json(self):
         address_list = []
         for address in self._addressList:
@@ -47,8 +53,28 @@ class Account:
         }
         return json
 
+    def from_json(self, json):
+        required = ['address_list']
+        if not all(k in json for k in required):
+            logging.warning('value missing in ["address_list"]')
+            return False
+        address_list = json["address_list"]
+        if not isinstance(address_list, list):
+            logging.warning('address_list should be type<list>')
+            return False
+        for address in address_list:
+            a = Address()
+            if a.from_json(address):
+                self.add_address(a)
+            else:
+                return False
+        return self.valid()
+
 
 if __name__ == '__main__':
     a = Account()
     a.create_address()
     print(a.to_json())
+    b = Account()
+    print(b.from_json(a.to_json()))
+    print(b.to_json())

@@ -222,7 +222,7 @@ class Node:
                                                  output_position['output_number'])
             if not output.valid_limit(4):
                 return 'error: limit out of range', 400
-            if not output.valid_data_url(data_url.get_start(), data_url.get_end()):
+            if not output.data_url_contains(data_url.get_start(), data_url.get_end()):
                 return 'error: data_url out of range', 400
 
             # check if timestamp is not expired
@@ -268,7 +268,7 @@ class Node:
                                                  output_position['output_number'])
             if not output.valid_limit(4):
                 return 'error: limit out of range', 400
-            if not output.valid_data_url(data_url.get_start(), data_url.get_end()):
+            if not output.data_url_contains(data_url.get_start(), data_url.get_end()):
                 return 'error: data_url out of range', 400
 
             # check if timestamp is not expired
@@ -490,6 +490,8 @@ class Node:
             node_json['authorizationPool'].append(auth.to_json())
         return node_json
 
+    def from_json(self, json):
+
     def store_node(self, file='node.txt'):
         node_path = os.path.join(self._dataPath, file)
         with open(node_path, 'w') as f:
@@ -504,6 +506,12 @@ class Node:
         self._ip = json.loads(text)["ip"]
         self._port = json.loads(text)["port"]
         self._neighborList = json.loads(text)["neighborList"]
+
+        blockchain = json.loads(text)["blockchain"]
+        file_blockchain = Blockchain()
+        chain = blockchain["blockchain"]
+        file_blockchain._difficulty = blockchain["difficulty"]
+        file_blockchain.
 
 
         # print(account)

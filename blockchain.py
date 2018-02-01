@@ -20,16 +20,6 @@ class Blockchain:
     def get_height(self):
         return len(self._blockchain)
 
-    def to_json(self):
-        json = {
-            'height': len(self._blockchain),
-            'difficulty': self._difficulty,
-            'blockchain': []
-        }
-        for block in self._blockchain:
-            json['blockchain'].append(block.to_json())
-        return json
-
     def get_block(self, block_number):
         return self._blockchain[block_number]
 
@@ -61,12 +51,14 @@ class Blockchain:
 
     def valid(self):
         if self._blockchain[0] != GENESIS_BLOCK:
+            logging.warning('the head of blockchain should be GENESIS_BLOCK')
             return False
         for i in range(1, len(self._blockchain)):
-            if self._blockchain[i].get_prev_hash != self._blockchain[i-1].get_now_hash \
-                    or self._blockchain[i].get_now_hash > self._difficulty:
+            if self._blockchain[i].get_prev_hash() != self._blockchain[i-1].get_now_hash():
+                logging.warning(f'the {i}th block does not match the previous one')
                 return False
-            if not self._blockchain[i].valid(self):
+            if not self._blockchain[i].valid(self) or self._blockchain[i].get_now_hash() > self._difficulty:
+                logging.warning(f'the {i}th block is invalid')
                 return False
         return True
 
@@ -76,9 +68,47 @@ class Blockchain:
                 return True
         return False
 
+    def to_json(self):
+        json = {
+            'height': len(self._blockchain),
+            'difficulty': self._difficulty,
+            'blockchain': []
+        }
+        for block in self._blockchain:
+            json['blockchain'].append(block.to_json())
+        return json
+
+    def from_json(self, json):
+        required = ['height', 'difficulty', 'blockchain']
+        if not all(k in json for k in required):
+            logging.warning(f'value missing in {required}')
+            return False
+
+        if not isinstance(json['height'], int) or not isinstance(json['difficulty'], str) \
+                or not isinstance(json['blockchain'], list):
+            logging.warning("height should be both type<int>, difficulty should be type<str> "
+                            "and blockchain should be type<list>")
+            return False
+
+        self._difficulty = json['difficulty']
+        chain = []
+        for block in json['blockchain']:
+            b = Block()
+            if not b.from_json(block):
+                return False
+            chain.append(b)
+        self._blockchain = chain
+        return True
+
 
 if __name__ == '__main__':
     my_chain = Blockchain()
     gen_block = my_chain.get_block(0)
-    print(gen_block.to_json())
     print(my_chain.valid())
+    my_chain.generate_new_block([])
+    print(my_chain.to_json())
+    print(my_chain.valid())
+
+    y = Blockchain()
+    print(y.from_json(my_chain.to_json()))
+    print(y.to_json())
