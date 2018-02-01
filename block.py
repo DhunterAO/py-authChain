@@ -94,6 +94,7 @@ class Block:
         }
         for authorization in self._authorizations:
             json['authorizations'].append(authorization.to_json())
+        #print(json['authorizations'])
         return json
 
     def __str__(self):

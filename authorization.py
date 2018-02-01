@@ -59,14 +59,20 @@ class Authorization:
         givens = []
         for input in self._inputs:
             if not input.valid(blockchain, hash):
+                print('input invalid')
                 return False
             out = blockchain.get_output(input.get_block_number(), input.get_auth_number(), input.get_output_number())
-            givens.append((out.get_dataURL().get_start(), out.get_dataURL().get_end(), out.get_limit()))
+            givens.append((out.get_data_url().get_start(), out.get_data_url().get_end(), out.get_limit().value()))
+
         for output in self._outputs:
             if not output.valid(givens):
+                print('output invalid')
                 return False
-        if not self._duration.valid(len(blockchain)):
+
+        if not self._duration.valid(blockchain.get_height()):
+            print('duration invalid')
             return False
+
         return True
 
     def __str__(self):

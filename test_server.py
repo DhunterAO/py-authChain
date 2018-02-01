@@ -1,4 +1,4 @@
-from client import Client
+from node import Node
 
-server = Client()
+server = n()
 

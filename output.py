@@ -35,8 +35,9 @@ class Output:
         return (self._limit & limit) == limit
 
     def valid(self, givens):
+        print(givens)
         for given in givens:
-            if self._dataURL.valid(given[0], given[1]) and self._limit.valid(given[2]):
+            if self._dataURL.belongs(given[0], given[1]) and self._limit.valid(given[2]):
                 return True
         return False
 
@@ -44,7 +45,7 @@ class Output:
         json = {
             'recipient': self._recipient,
             'dataURL': self._dataURL.to_json(),
-            'limit': self._limit
+            'limit': self._limit.value()
         }
         return json
 

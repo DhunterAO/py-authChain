@@ -3,6 +3,7 @@ from util import is_valid_ip, verify_signature
 from account import Account
 from blockchain import Blockchain
 from duration import Duration
+from limit import Limit
 from input import Input
 from output import Output
 from dataURL import DataURL
@@ -12,11 +13,13 @@ import requests
 import hashlib
 import json
 import time
+import os
 
 
 class Node:
     def __init__(self, ip="127.0.0.1", port=9000, neighbor_list=[],
-                 account=Account(), blockchain=Blockchain(), authorization_pool=[]):
+                 account=Account(), blockchain=Blockchain(), authorization_pool=[]
+                 , data_path='./database'):
         self._ip = ip
         self._port = port
         self._neighborList = neighbor_list
@@ -24,8 +27,10 @@ class Node:
         self._blockchain = blockchain
         self._authorizationPool = authorization_pool
         self._database = []
+        self._dataPath = data_path
         self.app = Flask(__name__)
 
+        """
         @self.app.route('/')
         def hello_world():
             return render_template('entry.html')
@@ -36,6 +41,7 @@ class Node:
             print(type(text))
             processed_text = text.upper()
             return processed_text
+        """
 
         @self.app.route('/neighbor/add')
         def submit_neighbor():
@@ -51,8 +57,7 @@ class Node:
                 return "Error: Please supply a valid list of neighbors", 400
             response = []
             for neighbor in neighbors:
-                add = node.add_neighbor(neighbor)
-                if not add:
+                if not node.add_neighbor(neighbor):
                     info = neighbor + ' is invalid address, address should be like x.x.x.x:port'
                     response.append(info)
             response += list(node.get_neighbors())
@@ -74,7 +79,7 @@ class Node:
         @self.app.route('/authorization/pool', methods=['GET'])
         def list_authorizations():
             response = self.get_authorization_pool()
-            return jsonify(response), 200
+            return jsonify(list(response)), 200
 
         @self.app.route('/authorization/add', methods=['POST'])
         def add_authorization():
@@ -129,6 +134,8 @@ class Node:
         def upload_data():
             # check if got enough values
             get_json = request.get_json()
+            print(get_json)
+            print(type(get_json))
             required = ['public_key', 'data', 'timestamp', 'op', 'signature']
             if not all(k in get_json for k in required):
                 return 'Missing values', 400
@@ -152,7 +159,10 @@ class Node:
                 return 'Request expired', 400
 
             # check if signature is matched
-            if not verify_signature(public_key, hash, signature):
+            print(signature)
+            print(type(signature))
+
+            if not verify_signature(public_key, hash, eval(signature)):
                 return 'Signature unmatched', 400
 
             # everything is fine then store data into database
@@ -168,13 +178,16 @@ class Node:
                 data_url = DataURL(len(self._database) - len(data), len(self._database))
             else:
                 data_url = DataURL(len(self._database) - 1, len(self._database))
-            output = Output(recipient=public_key, data_url=data_url)
+            output = Output(recipient=public_key, data_url=data_url, limit=Limit(7))
 
             authorization = Authorization(inputs=[input], outputs=[output], duration=Duration(), timestamp=time.time())
 
+            # sign this authorization
+            input.add_signature(self._account.sign_message(authorization.calc_hash()))
+
             # store this authorization and broadcast it
             auth_number = self.add_authorization(authorization)
-
+            print(auth_number)
             # return the position of authorization to client
             response = {
                 'block_number': self._blockchain.get_height(),
@@ -330,7 +343,11 @@ class Node:
 
         @self.app.route('/outputs/update', methods=['POST'])
         def update_outputs():
+            # check if got enough values
             get_json = request.get_json()
+            required = ['public_key', 'data_url', 'timestamp', 'output_position', 'op', 'signature']
+            if not all(k in get_json for k in required):
+                return 'Missing values', 400
 
             return
 
@@ -352,6 +369,10 @@ class Node:
     def get_port(self):
         return self._port
 
+    def add_address(self, address):
+        self._account.add_address(address)
+        return
+
     def add_neighbor(self, address):
         if len(address.split(':')) != 2:
             return False
@@ -364,7 +385,7 @@ class Node:
 
     def add_authorization(self, authorization):
         if authorization in self._authorizationPool or not authorization.valid(self._blockchain):
-            return
+            return -1
         self._authorizationPool.append(authorization)
         self.broad_authorization(authorization)
         return len(self._authorizationPool) - 1
@@ -456,7 +477,43 @@ class Node:
     def get_authorization_pool(self):
         return self._authorizationPool
 
+    def to_json(self):
+        node_json = {
+            'ip': self._ip,
+            'port': self._port,
+            'neighborList': self._neighborList,
+            'blockchain': self._blockchain.to_json(),
+            'authorizationPool': [],
+            'database': self._database
+        }
+        for auth in self._authorizationPool:
+            node_json['authorizationPool'].append(auth.to_json())
+        return node_json
+
+    def store_node(self, file='node.txt'):
+        node_path = os.path.join(self._dataPath, file)
+        with open(node_path, 'w') as f:
+            f.write(json.dumps(self.to_json()))
+        return
+
+    def load_node(self, file='node.txt'):
+        node_path = os.path.join(self._dataPath, file)
+        with open(node_path, 'r') as f:
+            text = f.read()
+        #print(account)
+        self._ip = json.loads(text)["ip"]
+        self._port = json.loads(text)["port"]
+        self._neighborList = json.loads(text)["neighborList"]
+
+
+        # print(account)
+        # print(type(json.loads(account)))
+        return
+
 
 if __name__ == '__main__':
     node = Node(port=9000)
     node.start()
+    node.store_node()
+    node.load_node()
+

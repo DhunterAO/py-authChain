@@ -2,7 +2,7 @@ import hashlib
 from constant import SERVER_ADDRESS
 from account import Account
 from dataURL import DataURL
-
+from constant import server_address
 import hashlib
 import requests
 import logging
@@ -10,6 +10,7 @@ import json
 import time
 import os
 from argparse import ArgumentParser
+from util import verify_signature
 
 from output import Output
 
@@ -38,7 +39,7 @@ class Client:
         account_path = os.path.join(self._path, file)
         with open(account_path, 'r') as f:
             account = f.read()
-        # print(account)
+        print(account)
         address_list = json.loads(account)["address_list"]
         for a in address_list:
             # print(a["private_key"])
@@ -51,7 +52,7 @@ class Client:
     def store_account(self, file='account.txt'):
         account_path = os.path.join(self._path, file)
         with open(account_path, 'w') as f:
-            f.write(str(self.to_json()))
+            f.write(json.dumps(self.to_json()))
         return
 
     # some functions about outputs
@@ -66,7 +67,7 @@ class Client:
             'timestamp': timestamp,
             'signature': signature
         }
-        response = requests.post(f"http://{server_address}/outputs/update", json=send_json)
+        response = requests.post(f"http://{server_address}/outputs/update", json=json.dumps(send_json))
 
         if response.status_code == 200:
             return_json = response.json()['data_url']
@@ -97,8 +98,18 @@ class Client:
             'data': data,
             'timestamp': timestamp,
             'op': 0,
-            'signature': signature
+            'signature': str(signature)
         }
+        # print(signature)
+        # print(type(signature))
+        # b = str(signature)
+        # print(b)
+        # print(type(b))
+        # c = eval(b)
+        # print(c)
+        # print(type(c))
+        # print(verify_signature(public_key, hash, c))
+
         response = requests.post(f"http://{server_address}/data/upload", json=send_json)
 
         if response.status_code == 200:
@@ -112,7 +123,7 @@ class Client:
             self._outputs.add(out)
             return True
         else:
-            logging.error('invalid response')
+            # print(response)
             return False
 
     def delete_data(self, server_address, data_url, address_index=0):
@@ -190,10 +201,10 @@ class Client:
         send_json = {
             'public_key': public_key,
             'data_url': data_url.to_json(),
-            'output': output,
+            'output_position': output,
             'timestamp': timestamp,
             'op': 3,
-            'signature': signature
+            'signature': str(signature)
         }
 
         response = requests.post(f"http://{server_address}/data/read", json=send_json)
@@ -210,14 +221,20 @@ class Client:
 
 
 if __name__ == '__main__':
+
+
     client = Client()
-    # print(1)
-    client.create_address()
-    # print(2)
-    print(client.to_json())
-    # print(3)
-    client.store_account()
-    # print(4)
+    #client.create_address()
+    # client.store_account()
     client.load_account()
-    # print(5)
-    print(client.to_json())
+
+    #client.upload_data(server_address, 'hello')
+
+    data_url = DataURL(0,1)
+    output_position = {
+        'block_number': 1,
+        'authorization_number': 0,
+        'output_number': 0
+    }
+    client.read_data(server_address, data_url, output_position)
+

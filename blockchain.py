@@ -38,7 +38,7 @@ class Blockchain:
 
     def get_output(self, block_number, authorization_number, output_number):
         try:
-            output = self._blockchain[block_number].get_autherization(authorization_number).get_output(output_number)
+            output = self._blockchain[block_number].get_authorization(authorization_number).get_output(output_number)
         except IndexError:
             logging.error("index out of range")
             return None

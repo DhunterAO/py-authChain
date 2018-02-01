@@ -11,7 +11,7 @@ class Account:
             self._addressList.append(address)
         return
 
-    def get_address(self, index):
+    def get_address(self, index=0):
         return self._addressList[index]
 
     def add_address_from_private_key(self, private_key):
@@ -32,7 +32,7 @@ class Account:
         self._addressList.append(Address(private_key))
         return
 
-    def sign_message(self, message, index):
+    def sign_message(self, message, index=0):
         if index > len(self._addressList):
             logging.error('index out of range')
             return None

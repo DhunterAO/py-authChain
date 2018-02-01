@@ -21,6 +21,9 @@ class Limit:
     def valid(self, given_limit):
         return (self._limit & given_limit) == self._limit
 
+    def value(self):
+        return self._limit
+
     def __str__(self):
         return str(self._limit)
 

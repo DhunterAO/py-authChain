@@ -1,5 +1,7 @@
 from ecdsa import VerifyingKey
 from flask import jsonify
+from binascii import unhexlify
+from util import verify_signature
 
 
 class Input:
@@ -35,18 +37,20 @@ class Input:
         source_out = blockchain.get_output(self._blockNumber, self._authNumber, self._outputNumber)
         if source_out is None:
             return False
-        source_pubkey = source_out.getAddress()
-        source_pubkey = VerifyingKey.from_string(source_pubkey)
-        return source_pubkey.verify(self._signature, message.encode("utf-8"))
+        source_pubkey = source_out.get_recipient()
+        print(source_pubkey)
+        print(message)
+        print(self._signature)
+        return verify_signature(source_pubkey, message, self._signature)
 
     def to_json(self):
         json = {
             'blockNumber': self._blockNumber,
             'authNumber': self._authNumber,
             'outputNumber': self._outputNumber,
-            'signature': self._signature
+            'signature': str(self._signature)
         }
-        return jsonify(json)
+        return json
 
     def __str__(self):
         return str(self._blockNumber)+str(self._authNumber)+str(self._outputNumber)

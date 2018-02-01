@@ -40,8 +40,11 @@ class DataURL:
     def get_end(self):
         return self._end
 
-    def valid(self, given_start, given_end):
+    def contains(self, given_start, given_end):
         return self._start <= given_start < given_end <= self._end
+
+    def belongs(self, given_start, given_end):
+        return given_start <= self._start < self._end <= given_end
 
     def to_json(self):
         json = {

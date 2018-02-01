@@ -26,10 +26,9 @@ class Address:
         return self._private_key.to_string().hex()
 
     def to_json(self):
-        # print(self._private_key.to_string())
         json = {
-            "private_key": self._private_key.to_string(),
-            "public_key": self._public_key.to_string()
+            "public_key": self._public_key.to_string().hex(),
+            "private_key": self._private_key.to_string().hex()
         }
         return json
 
@@ -41,11 +40,13 @@ if __name__ == '__main__':
     u = Address("d32f637a66da5829a007df4de5aa0f1b120c0aa440ad6062")
     s = u.sign_message("fa9988j")
     p = u.get_pubkey()
-    print(p)
     print(unhexlify(p))
     print(u.get_prikey())
     print(verify_signature(p, "fa9988j", s))
 
     u2 = Address("d32f637a66da5829a007df4de5aa0f1b120c0aa440ad6062")
     print(u2.get_pubkey())
+
+    print(s)
+    print(type(s))
     print(verify_signature(u2.get_pubkey(), "fa9988j", s))

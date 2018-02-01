@@ -1,6 +1,6 @@
 from block import Block
 from authorization import Authorization
-from account import Account
+from limit import Limit
 from address import Address
 from output import Output
 from dataURL import DataURL
@@ -33,7 +33,7 @@ MAX_DATA_RANGE = 1000000
 SERVER_ADDRESS = Address("ae4d632b868f04b9fc9b69898f4a8a555f10c64e35cf7692")
 
 out = Output(recipient='59be9bbd5224fb4d69a861c3cd934ca07e2e56de148e988fcff7df8f47b98bcac15c0e3427433004e0a650cde005f4d5',
-             data_url=DataURL(0, MAX_DATA_RANGE), limit=7)
+             data_url=DataURL(0, MAX_DATA_RANGE), limit=Limit(7))
 auth = Authorization(inputs=[], outputs=[out], duration=Duration(0), timestamp=1516156465.8362110)
 
 """
@@ -70,4 +70,4 @@ GENESIS_BLOCK = Block(prev_hash=0,
                       now_hash="0000cdba04652df1bf82edc180aa7ccedd9a5aa9881ef13fc40f2481122099a7",
                       nonce=51071)
 
-
+server_address = '127.0.0.1:9000'
